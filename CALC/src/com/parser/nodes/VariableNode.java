@@ -1,4 +1,6 @@
-public class VariableNode {
+package com.parser.nodes;
+import com.runtime.*;
+public class VariableNode implements Expression{
   private final String varName;
 	
 	public VariableNode(String varName) {

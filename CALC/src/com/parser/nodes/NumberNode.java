@@ -1,5 +1,6 @@
-import 
-public class NumberNode {
+package com.parser.nodes;
+import com.runtime.*;
+public class NumberNode implements Expression{
   private double value;
 	public NumberNode(double value) {
 		this.value = value;

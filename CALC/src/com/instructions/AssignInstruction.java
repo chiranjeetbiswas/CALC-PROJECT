@@ -1,4 +1,6 @@
-package com.project;
+package com.instructions;
+import com.parser.nodes.*;
+import com.runtime.Environment;
 
 public class AssignInstruction implements Instruction{
 	private final String varName;
