@@ -1,4 +1,4 @@
-
+import 
 public class NumberNode {
   private double value;
 	public NumberNode(double value) {
