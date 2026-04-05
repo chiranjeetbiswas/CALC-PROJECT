@@ -1,8 +1,7 @@
 package com.parser;
 import com.instructions.*;
-
-import com.parser.nodes.*;
 import com.tokens.*;
+import com.parser.nodes.*;
 
 import java.util.*;
 
@@ -12,6 +11,20 @@ public class Parser {
 	public Parser(List<Token> tokens) {
 		this.tokens = tokens;
 	}
+	
+	public List<Instruction> parse(){
+		List<Instruction> Instructions = new ArrayList<>();
+		while(!(this.isAtEnd())) {
+			if(this.match(TokenType.NEWLINE)) {
+				continue;
+			}
+			Instruction instr = this.parseInstruction();
+			Instructions.add(instr);
+			this.match(TokenType.NEWLINE);
+		}
+		return Instructions;
+	}
+	
 	//doubt
 	private Instruction parseAssignment() {
 		String varName = this.consume(TokenType.IDENTIFIER, "Expected variable").getValue();
@@ -20,6 +33,68 @@ public class Parser {
 		return new AssignInstruction(varName, expr);
 		
 	}
+	
+	private Instruction parsePrint() {
+		this.consume(TokenType.PRINT, "Expected >>");
+		Expression expr = parseExpression();
+		return new PrintInstruction(expr);
+		
+	}
+	
+	private Instruction parseIf() {
+		this.consume(TokenType.IF, "Expected ?");
+		Expression condition = parseComparison();
+		this.consume(TokenType.ARROW, "Expected =>");
+		List<Instruction> body = parseBlock();
+		return new IfInstruction(condition, body);
+		
+	}
+	
+	private Instruction parseRepeat() {
+		this.consume(TokenType.LOOP, "Expected @");
+		Expression count = parseExpression();
+		this.consume(TokenType.ARROW, "Expected =>");
+		List<Instruction> body = parseBlock();
+		return new RepeatInstruction(count, body);
+		
+	}
+	
+	private List<Instruction> parseBlock(){
+		List<Instruction> instructions = new ArrayList<Instruction>();
+		while(!(this.isAtEnd())) {
+			if(this.match(TokenType.NEWLINE)) {
+				continue;
+			}
+			if(!(this.isStartOfInstruction())) {
+				break;
+			}
+			Instruction instr = this.parseInstruction();
+			instructions.add(instr);
+			this.match(TokenType.NEWLINE);
+		}
+		return instructions;
+	}
+	
+	private Instruction parseInstruction() {
+		Token token = peek();
+		if(this.check(TokenType.IDENTIFIER)) {
+			return this.parseAssignment();
+			
+		}else if(this.check(TokenType.PRINT)) {
+			return this.parsePrint();
+			
+		}else if(this.check(TokenType.IF)) {
+			return this.parseIf();
+			
+			
+		}else if(this.check(TokenType.LOOP)) {
+			return this.parseRepeat();
+			
+		}else {
+			throw new RuntimeException("Invalid instruction at line " + token.getLine());
+		}
+	}
+	
 	private Expression parseComparison() {
 		Expression left = parseExpression();
 		while(this.check(TokenType.GREATER) || this.check(TokenType.LESS) || this.check(TokenType.DEQUAL)) {
@@ -69,6 +144,9 @@ public class Parser {
 			throw new RuntimeException("Invalid expression at line "+peek().getLine());
 		}
 	}
+	
+	
+	
 	private Token peek() {
 		return tokens.get(curIndex);
 	}
@@ -111,7 +189,12 @@ public class Parser {
 	private boolean isStartOfInstruction() {
 		return check(TokenType.IDENTIFIER) || check(TokenType.PRINT) || check(TokenType.IF) || check(TokenType.LOOP);
 	}
-
+	public static void main(String[] args) {
+		Tokenizer t = new Tokenizer("x := 10\n\n\n>> x");
+		List<Token> tokens = t.tokenize();
+		Parser p = new Parser(tokens);
+		System.out.println("Current Token: " + p.peek());
+		System.out.println(p.parse());
+	}
+	
 }
-	
-	
