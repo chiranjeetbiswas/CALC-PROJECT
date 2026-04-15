@@ -1,4 +1,4 @@
-package com.tokens;
+package calc.tokens;
 
 public class Token {
   private final TokenType type;

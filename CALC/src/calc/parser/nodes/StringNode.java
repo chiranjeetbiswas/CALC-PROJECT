@@ -1,6 +1,8 @@
-package com.parser.nodes;
-import com.runtime.*;
-public class StringNode implements Expression{
+package calc.parser.nodes;
+
+import calc.runtime.*;
+
+public class StringNode implements Expression {
   private String value;
 	
 	public StringNode(String value) {

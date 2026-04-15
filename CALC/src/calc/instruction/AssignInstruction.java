@@ -1,8 +1,9 @@
-package com.instructions;
-import com.parser.nodes.*;
-import com.runtime.Environment;
+package calc.instruction;
 
-public class AssignInstruction implements Instruction{
+import calc.runtime.Environment;
+import calc.parser.nodes.Expression;
+
+public class AssignInstruction implements Instruction {
 	private final String varName;
 	private final Expression expression;
 	public AssignInstruction(String varName, Expression expression) {

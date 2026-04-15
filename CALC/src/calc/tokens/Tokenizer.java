@@ -1,10 +1,10 @@
-package com.tokens;
+package calc.tokens;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Tokenizer {
-  public String source;
+	public String source;
 	public int cur_pos = 0;
 	
 	public Tokenizer(String source) {
@@ -17,6 +17,7 @@ public class Tokenizer {
 		int i = cur_pos;
 		
 		//indent
+//		boolean expectingIndent = false;
 		//..
 		
 		while(i < source.length()) {
@@ -35,6 +36,16 @@ public class Tokenizer {
 				token.add(new Token(TokenType.NEWLINE,"\n",line));
 				line++;
 				i++;
+			
+				//Adding indentation logic here(tokenizer)
+				int count = 0;
+				while(i < source.length() && (source.charAt(i) == '\t')) {
+					count++;
+					i++;
+				}
+				for(int j = 0; j < count; j++) {
+                    token.add(new Token(TokenType.INDENT, "INDENT", line));
+				}
 			}
 			
 			else if(Character.isLetter(c) || c == '_') {
@@ -110,6 +121,14 @@ public class Tokenizer {
 				token.add(new Token(TokenType.DEQUAL, "==", line));
 				i += 2;
 			}
+			else if(i<source.length() - 1 && c == '<' && source.charAt(i+1) == '=') {
+				token.add(new Token(TokenType.LTE, "<=", line));
+				i+=2;
+			}
+			else if(i<source.length() - 1 && c == '>' && source.charAt(i+1) == '=') {
+				token.add(new Token(TokenType.GTE, ">=" ,line));
+				i+=2;
+			}
 			
 			else if(c == '?') {
 				token.add(new Token(TokenType.IF,"?",line));
@@ -166,9 +185,5 @@ public class Tokenizer {
 		}
 		token.add(new Token(TokenType.EOF, "EOF", line));
 		return token;
-  }
-  public static void main(String[] args) {
-		Tokenizer t = new Tokenizer("x := 10\n>>\"hello\"\n? x > 5 =>\n@ 3 =>");
-		System.out.println(t.tokenize());
 	}
 }

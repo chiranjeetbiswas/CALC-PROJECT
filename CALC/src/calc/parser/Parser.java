@@ -1,13 +1,13 @@
-package com.parser;
-import com.instructions.*;
-import com.tokens.*;
-import com.parser.nodes.*;
-
+package calc.parser;
+import calc.tokens.*;
+import calc.instruction.*;
+import calc.parser.nodes.*;
 import java.util.*;
 
 public class Parser {
 	public List<Token> tokens;
 	public int curIndex = 0;
+	private int currentIndentLevel = 0;
 	public Parser(List<Token> tokens) {
 		this.tokens = tokens;
 	}
@@ -18,6 +18,14 @@ public class Parser {
 			if(this.match(TokenType.NEWLINE)) {
 				continue;
 			}
+			
+			if(this.check(TokenType.INDENT)) {
+			    // !skip stray indentation at top level
+			    advance();
+			    continue;
+			}
+			
+			//..
 			Instruction instr = this.parseInstruction();
 			Instructions.add(instr);
 			this.match(TokenType.NEWLINE);
@@ -45,7 +53,13 @@ public class Parser {
 		this.consume(TokenType.IF, "Expected ?");
 		Expression condition = parseComparison();
 		this.consume(TokenType.ARROW, "Expected =>");
-		List<Instruction> body = parseBlock();
+		
+		//Adding indent logic(parseIf)
+		this.consume(TokenType.NEWLINE, "Expected newline after =>");
+		//..
+		
+		
+		List<Instruction> body = parseBlock(currentIndentLevel + 1);
 		return new IfInstruction(condition, body);
 		
 	}
@@ -54,25 +68,62 @@ public class Parser {
 		this.consume(TokenType.LOOP, "Expected @");
 		Expression count = parseExpression();
 		this.consume(TokenType.ARROW, "Expected =>");
-		List<Instruction> body = parseBlock();
+		
+		//Adding indent logic(parseRepeat)
+		this.consume(TokenType.NEWLINE, "Expected newline after =>");
+		//..
+		
+		List<Instruction> body = parseBlock(currentIndentLevel + 1);
 		return new RepeatInstruction(count, body);
 		
 	}
 	
-	private List<Instruction> parseBlock(){
+	private List<Instruction> parseBlock(int expectedIndentLevel){
 		List<Instruction> instructions = new ArrayList<Instruction>();
 		while(!(this.isAtEnd())) {
 			if(this.match(TokenType.NEWLINE)) {
 				continue;
 			}
-			if(!(this.isStartOfInstruction())) {
+			int lineIndentLevel = consumeIndentLevel();
+			if(lineIndentLevel == 0){
 				break;
 			}
+			if(lineIndentLevel < expectedIndentLevel) {
+				curIndex -= lineIndentLevel;
+				break;
+			}
+			if(lineIndentLevel > expectedIndentLevel) {
+				throw new RuntimeException("Unexpected indentation at line " + peek().getLine());
+			}
+			
+			if(!(this.isStartOfInstruction())) {
+				throw new RuntimeException("Expected instruction after indentation at line " + peek().getLine());
+			}
+			
+			int previousIndentLevel = currentIndentLevel;
+			currentIndentLevel = lineIndentLevel;
 			Instruction instr = this.parseInstruction();
 			instructions.add(instr);
+			currentIndentLevel = previousIndentLevel;
+			
 			this.match(TokenType.NEWLINE);
 		}
+		
+		//Empty or wrong block handling body handling
+		if(instructions.isEmpty()) {
+			throw new RuntimeException("Wrong formate of block body at line " + peek().getLine() + ": expected indented instruction after '=>'");
+		}
+		//..
+		
 		return instructions;
+	}
+	
+	private int consumeIndentLevel() {
+		int level = 0;
+		while(this.match(TokenType.INDENT)) {
+			level++;
+		}
+		return level;
 	}
 	
 	private Instruction parseInstruction() {
@@ -97,13 +148,15 @@ public class Parser {
 	
 	private Expression parseComparison() {
 		Expression left = parseExpression();
-		while(this.check(TokenType.GREATER) || this.check(TokenType.LESS) || this.check(TokenType.DEQUAL)) {
+		while(this.check(TokenType.GREATER) || this.check(TokenType.LESS) || this.check(TokenType.DEQUAL) || this.check(TokenType.LTE) || this.check(TokenType.GTE)) {
 			Token operator = advance();
 			Expression right = parseExpression();
 			left = new BinaryOpNode(left, operator, right);
 		}
 		return left;
 	}
+	
+	
 	private Expression parseExpression() {
 		//handles + and -
 		Expression left = parseTerm();
@@ -130,13 +183,25 @@ public class Parser {
 	
 	private Expression parsePrimary() {
 		//handles a single number, string, or variable
+		
+		//handling - clearly
+		if(this.check(TokenType.SUBTRACT)) {
+			this.advance();
+			Token numtoken = this.advance();
+			if(numtoken.getType() != TokenType.NUMBER) {
+				throw new RuntimeException("Excepted number after unary minus at line " + numtoken.getLine());
+			}
+			return new NumberNode(-Double.parseDouble(numtoken.getValue()));
+		//handling - ...
+			
+			
+		}
 		Token token = advance();
 		if(token.getType() == TokenType.NUMBER) {
 			return new NumberNode((Double.parseDouble(token.getValue())));
 			
 		}else if(token.getType() == TokenType.STRING) {
 			return new StringNode(token.getValue());
-			
 		}else if(token.getType() == TokenType.IDENTIFIER) {
 			return new VariableNode(token.getValue());
 			
@@ -144,8 +209,6 @@ public class Parser {
 			throw new RuntimeException("Invalid expression at line "+peek().getLine());
 		}
 	}
-	
-	
 	
 	private Token peek() {
 		return tokens.get(curIndex);
@@ -189,12 +252,12 @@ public class Parser {
 	private boolean isStartOfInstruction() {
 		return check(TokenType.IDENTIFIER) || check(TokenType.PRINT) || check(TokenType.IF) || check(TokenType.LOOP);
 	}
-	public static void main(String[] args) {
-		Tokenizer t = new Tokenizer("x := 10\n\n\n>> x");
-		List<Token> tokens = t.tokenize();
-		Parser p = new Parser(tokens);
-		System.out.println("Current Token: " + p.peek());
-		System.out.println(p.parse());
-	}
+//	public static void main(String[] args) {
+//		Tokenizer t = new Tokenizer("x := 10\n\n\n>> x");
+//		List<Token> tokens = t.tokenize();
+//		Parser p = new Parser(tokens);
+//		System.out.println("Current Token: " + p.peek());
+//		System.out.println(p.parse());
+//	}
 	
 }

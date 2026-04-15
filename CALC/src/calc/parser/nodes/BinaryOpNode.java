@@ -1,7 +1,9 @@
-package com.parser.nodes;
-import com.tokens.*;
-import com.runtime.Environment;
-public class BinaryOpNode implements Expression{
+package calc.parser.nodes;
+
+import calc.runtime.*;
+import calc.tokens.*;
+
+public class BinaryOpNode implements Expression {
   private Expression left;
 	private Token operator;
 	private Expression right;
